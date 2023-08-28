@@ -14,7 +14,7 @@ if sys.version_info >= (3, 11):
     _CACERT_CTX = None
     _CACERT_PATH = None
 
-    def where() -> str:
+    def where():
         # This is slightly terrible, but we want to delay extracting the file
         # in cases where we're inside of a zipimport situation until someone
         # actually calls where(), but we don't want to re-extract the file
@@ -38,7 +38,7 @@ if sys.version_info >= (3, 11):
 
         return _CACERT_PATH
 
-    def contents() -> str:
+    def contents():
         return files("certifi").joinpath("cacert.pem").read_text(encoding="ascii")
 
 elif sys.version_info >= (3, 7):
@@ -48,7 +48,7 @@ elif sys.version_info >= (3, 7):
     _CACERT_CTX = None
     _CACERT_PATH = None
 
-    def where() -> str:
+    def where():
         # This is slightly terrible, but we want to delay extracting the
         # file in cases where we're inside of a zipimport situation until
         # someone actually calls where(), but we don't want to re-extract
@@ -73,36 +73,32 @@ elif sys.version_info >= (3, 7):
 
         return _CACERT_PATH
 
-    def contents() -> str:
+    def contents():
         return read_text("certifi", "cacert.pem", encoding="ascii")
 
 else:
     import os
     import types
-    from typing import Union
-
-    Package = Union[types.ModuleType, str]
-    Resource = Union[str, "os.PathLike"]
 
     # This fallback will work for Python versions prior to 3.7 that lack the
     # importlib.resources module but relies on the existing `where` function
     # so won't address issues with environments like PyOxidizer that don't set
     # __file__ on modules.
     def read_text(
-        package: Package,
-        resource: Resource,
-        encoding: str = 'utf-8',
-        errors: str = 'strict'
-    ) -> str:
+        package,
+        resource,
+        encoding = 'utf-8',
+        errors = 'strict'
+    ):
         with open(where(), encoding=encoding) as data:
             return data.read()
 
     # If we don't have importlib.resources, then we will just do the old logic
     # of assuming we're on the filesystem and munge the path directly.
-    def where() -> str:
+    def where():
         f = os.path.dirname(__file__)
 
         return os.path.join(f, "cacert.pem")
 
-    def contents() -> str:
+    def contents():
         return read_text("certifi", "cacert.pem", encoding="ascii")
