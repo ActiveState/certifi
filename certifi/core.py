@@ -7,7 +7,8 @@ This module returns the installation location of cacert.pem or its contents.
 import sys
 import atexit
 
-def exit_cacert_ctx() -> None:
+def exit_cacert_ctx():
+    # type: () -> None
     _CACERT_CTX.__exit__(None, None, None)  # type: ignore[union-attr]
 
 
@@ -18,7 +19,8 @@ if sys.version_info >= (3, 11):
     _CACERT_CTX = None
     _CACERT_PATH = None
 
-    def where() -> str:
+    def where():
+        # type: () -> str
         # This is slightly terrible, but we want to delay extracting the file
         # in cases where we're inside of a zipimport situation until someone
         # actually calls where(), but we don't want to re-extract the file
@@ -43,17 +45,19 @@ if sys.version_info >= (3, 11):
 
         return _CACERT_PATH
 
-    def contents() -> str:
+    def contents():
+        # type: () -> str
         return files("certifi").joinpath("cacert.pem").read_text(encoding="ascii")
 
-else:
+elif sys.version_info >= (3, 7):
 
     from importlib.resources import path as get_path, read_text
 
     _CACERT_CTX = None
     _CACERT_PATH = None
 
-    def where() -> str:
+    def where():
+        # type: () -> str
         # This is slightly terrible, but we want to delay extracting the
         # file in cases where we're inside of a zipimport situation until
         # someone actually calls where(), but we don't want to re-extract
@@ -79,5 +83,33 @@ else:
 
         return _CACERT_PATH
 
-    def contents() -> str:
+    def contents():
+        # type: () -> str
+        return read_text("certifi", "cacert.pem", encoding="ascii")
+
+else:
+    import io
+    import os
+
+    # This fallback will work for Python versions prior to 3.7 (including
+    # Python 2.7) that lack the importlib.resources module but relies on the
+    # existing `where` function so won't address issues with environments
+    # like PyOxidizer that don't set __file__ on modules.
+    def read_text(package, resource, encoding="utf-8", errors="strict"):
+        # type: (str, str, str, str) -> str
+        # io.open (not the builtin open) so the encoding argument also works
+        # on Python 2.7, where it returns unicode text like Python 3 does.
+        with io.open(where(), encoding=encoding, errors=errors) as data:
+            return data.read()
+
+    # If we don't have importlib.resources, then we will just do the old logic
+    # of assuming we're on the filesystem and munge the path directly.
+    def where():
+        # type: () -> str
+        f = os.path.dirname(__file__)
+
+        return os.path.join(f, "cacert.pem")
+
+    def contents():
+        # type: () -> str
         return read_text("certifi", "cacert.pem", encoding="ascii")
